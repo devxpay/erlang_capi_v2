@@ -209,6 +209,7 @@ decode_shop(Shop) ->
         <<"contractID">> => Shop#domain_Shop.contract_id,
         <<"payoutToolID">> => Shop#domain_Shop.payout_tool_id,
         <<"scheduleID">> => capi_handler_decoder_utils:decode_business_schedule_ref(Shop#domain_Shop.payout_schedule),
+        % TODO #ED-123 <<"merchantID">> => ...
         <<"account">> => decode_shop_account(Shop#domain_Shop.account)
     }).
 
