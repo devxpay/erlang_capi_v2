@@ -27,6 +27,7 @@
 
 -export([unwrap_payment_session/1]).
 -export([wrap_payment_session/2]).
+-export([unwrap_merchant_id/1]).
 -export([wrap_merchant_id/3]).
 
 -export([create_dsl/3]).
@@ -218,6 +219,15 @@ wrap_payment_session(ClientInfo, PaymentSession) ->
         <<"clientInfo">> => ClientInfo,
         <<"paymentSession">> => PaymentSession
     }).
+
+-spec unwrap_merchant_id(binary()) -> {binary(), binary(), binary()}.
+unwrap_merchant_id(Encoded) ->
+    case binary:split(Encoded, <<$:>>, [global]) of
+        [RealmMode, PartyHashBin, ShopID] ->
+            {RealmMode, PartyHashBin, ShopID};
+        _ ->
+            erlang:throw(invalid_merchant_id)
+    end.
 
 -spec wrap_merchant_id(binary(), binary(), binary()) -> binary().
 wrap_merchant_id(RealmMode, PartyID, ShopID) ->
