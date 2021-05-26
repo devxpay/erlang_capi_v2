@@ -219,11 +219,10 @@ wrap_payment_session(ClientInfo, PaymentSession) ->
         <<"paymentSession">> => PaymentSession
     }).
 
--spec wrap_merchant_id(atom(), binary(), binary()) -> binary().
+-spec wrap_merchant_id(binary(), binary(), binary()) -> binary().
 wrap_merchant_id(RealmMode, PartyID, ShopID) ->
-    RealmModeBin = erlang:atom_to_binary(RealmMode, latin1),
     PartyHashBin = erlang:integer_to_binary(erlang:phash2(PartyID), 16),
-    <<RealmModeBin/binary, $:, PartyHashBin/binary, $:, ShopID/binary>>.
+    <<RealmMode/binary, $:, PartyHashBin/binary, $:, ShopID/binary>>.
 
 -spec create_dsl(atom(), map(), map()) -> map().
 create_dsl(QueryType, QueryBody, QueryParams) ->
