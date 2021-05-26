@@ -588,7 +588,8 @@ decode_payer_token(#{<<"payerType">> := <<"PaymentResourcePayer">>, <<"paymentTo
 decode_payer_token(CustomerOrRecurrentPayer) ->
     {CustomerOrRecurrentPayer, undefined}.
 
-unwrap_payment_tool(InvoiceID, #{payment_tool := PaymentTool, valid_until := ValidUntil} = TokenData) ->
+unwrap_payment_tool(InvoiceID, #{payment_tool := PaymentTool} = TokenData) ->
+    ValidUntil = maps:get(valid_until, TokenData, undefined),
     TokenInvoiceID =
         case capi_utils:deadline_is_reached(ValidUntil) of
             true ->

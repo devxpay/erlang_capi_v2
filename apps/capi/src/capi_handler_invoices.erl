@@ -85,7 +85,7 @@ prepare('CreateInvoiceAccessToken' = OperationID, Req, Context) ->
         Response = capi_handler_utils:issue_access_token(
             PartyID,
             {invoice, InvoiceID},
-            ExtraProperties#{token_link => {invoice, InvoiceID}}
+            ExtraProperties#{<<"invoice_id">> => InvoiceID}
         ),
         {ok, {201, #{}, Response}}
     end,
@@ -473,7 +473,7 @@ prepare_token_provider_data(Invoice, #{woody_context := WoodyContext} = Context)
     Contract = maybe_result(capi_handler_call:get_contract_by_id(ContractID, Context)),
     #domain_Contract{payment_institution = PiRef} = Contract,
     Pi = maybe_result(capi_domain:get({payment_institution, PiRef}, WoodyContext)),
-    #domain_PaymentInstitution{realm = Realm} = Pi,
+    #domain_PaymentInstitutionObject{data = #domain_PaymentInstitution{realm = Realm}} = Pi,
     RealmMode = genlib:to_binary(Realm),
     PartyID = capi_handler_utils:get_party_id(Context),
     MerchantID = capi_handler_utils:wrap_merchant_id(RealmMode, PartyID, ShopID),
