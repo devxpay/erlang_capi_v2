@@ -1,4 +1,4 @@
--module(capi_payment_tool).
+-module(capi_crypto).
 
 -include_lib("damsel/include/dmsl_payment_tool_token_thrift.hrl").
 

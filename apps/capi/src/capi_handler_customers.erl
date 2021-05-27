@@ -350,7 +350,7 @@ encode_customer_binding_params(
     }.
 
 encode_payment_tool_token(Token) ->
-    case capi_payment_tool:decrypt_payment_tool_token(Token) of
+    case capi_crypto:decrypt_payment_tool_token(Token) of
         {ok, {PaymentTool, ValidUntil}} ->
             case capi_utils:deadline_is_reached(ValidUntil) of
                 true ->

@@ -576,7 +576,7 @@ map_result(_) ->
     undefined.
 
 decode_payer_token(#{<<"payerType">> := <<"PaymentResourcePayer">>, <<"paymentToolToken">> := Token} = Payer) ->
-    case capi_payment_tool:decode_token(Token) of
+    case capi_crypto:decode_token(Token) of
         {ok, TokenData} ->
             {maps:without([<<"paymentToolToken">>], Payer), TokenData};
         unrecognized ->

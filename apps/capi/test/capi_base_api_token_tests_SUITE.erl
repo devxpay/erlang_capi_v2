@@ -710,7 +710,7 @@ create_payment_ok_test(Config) ->
         Config
     ),
     PaymentTool = {bank_card, ?BANK_CARD(visa, ?EXP_DATE(2, 2020), <<"Degus">>)},
-    PaymentToolToken = capi_payment_tool:create_encrypted_payment_tool_token(PaymentTool, undefined),
+    PaymentToolToken = capi_crypto:create_encrypted_payment_tool_token(PaymentTool, undefined),
     Req = ?PAYMENT_PARAMS(ExternalID, PaymentToolToken),
     {ok, _} = capi_client_payments:create_payment(?config(context, Config), Req, ?STRING).
 
@@ -2214,7 +2214,7 @@ check_support_decrypt_v2_test(_Config) ->
         "V2lTSmRnbzB0MCJ9..j3zEyCqyfQjpEtQM.JAc3kqJm6zbn0fMZGlK_t14Yt4PvgOuoVL2DtkEgIXIqrxxWFbykKBGxQvwYisJYIUJJwt"
         "YbwvuGEODcK2uTC2quPD2Ejew66DLJF2xcAwE.MNVimzi8r-5uTATNalgoBQ"
     >>,
-    {ok, {PaymentTool, ValidUntil}} = capi_payment_tool:decrypt_payment_tool_token(PaymentToolToken),
+    {ok, {PaymentTool, ValidUntil}} = capi_crypto:decrypt_payment_tool_token(PaymentToolToken),
     ?assertEqual(
         {mobile_commerce, #domain_MobileCommerce{
             phone = #domain_MobilePhone{
