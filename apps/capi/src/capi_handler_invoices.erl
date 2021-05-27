@@ -85,7 +85,8 @@ prepare('CreateInvoiceAccessToken' = OperationID, Req, Context) ->
         Response = capi_handler_utils:issue_access_token(
             PartyID,
             {invoice, InvoiceID},
-            ExtraProperties#{<<"invoice_id">> => InvoiceID}
+            % этот invoice_link использется для привязки токена в createPaymentResource
+            ExtraProperties#{<<"invoice_link">> => InvoiceID}
         ),
         {ok, {201, #{}, Response}}
     end,
