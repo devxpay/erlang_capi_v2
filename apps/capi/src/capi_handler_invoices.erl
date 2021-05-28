@@ -262,7 +262,7 @@ prepare('GetInvoicePaymentMethods' = OperationID, Req, Context) ->
         case capi_handler_decoder_invoicing:construct_payment_methods(invoicing, Args, Context) of
             {ok, PaymentMethods0} when is_list(PaymentMethods0) ->
                 PaymentMethods1 = capi_utils:deduplicate_payment_methods(PaymentMethods0),
-                TokenProviderData = prepare_token_provider_data(ResultInvoice, Context),
+                TokenProviderData = decode_token_provider_data(ResultInvoice, Context),
                 PaymentMethods = mixin_token_provider_data(PaymentMethods1, TokenProviderData),
                 {ok, {200, #{}, PaymentMethods}};
             {exception, Exception} ->
@@ -446,6 +446,36 @@ decode_refund_for_event(#domain_InvoicePaymentRefund{cash = undefined} = Refund,
         capi_handler_call:get_payment_by_id(InvoiceID, PaymentID, Context),
     capi_handler_decoder_invoicing:decode_refund(Refund#domain_InvoicePaymentRefund{cash = Cash}, Context).
 
+decode_token_provider_data(Invoice, #{woody_context := WoodyContext} = Context) ->
+    #payproc_Invoice{invoice = #domain_Invoice{id = InvoiceID}} = Invoice,
+    #payproc_Invoice{invoice = #domain_Invoice{shop_id = ShopID}} = Invoice,
+    Shop = maybe_result(capi_handler_call:get_shop_by_id(ShopID, Context)),
+    #domain_Shop{details = #domain_ShopDetails{name = ShopName}} = Shop,
+    #domain_Shop{contract_id = ContractID} = Shop,
+    Contract = maybe_result(capi_handler_call:get_contract_by_id(ContractID, Context)),
+    #domain_Contract{payment_institution = PiRef} = Contract,
+    Pi = maybe_result(capi_domain:get({payment_institution, PiRef}, WoodyContext)),
+    #domain_PaymentInstitutionObject{data = #domain_PaymentInstitution{realm = Realm}} = Pi,
+    RealmMode = genlib:to_binary(Realm),
+    MerchantID = capi_handler_utils:wrap_merchant_id(RealmMode, ShopID),
+    #{
+        <<"merchantID">> => MerchantID,
+        <<"merchantName">> => ShopName,
+        <<"orderID">> => InvoiceID,
+        <<"realm">> => RealmMode
+    }.
+
+mixin_token_provider_data(PaymentMethods, TokenProviderData) ->
+    lists:map(
+        fun
+            (#{<<"method">> := <<"BankCard">>} = PaymentMethod) ->
+                PaymentMethod#{<<"tokenProviderData">> => TokenProviderData};
+            (PaymentMethod) ->
+                PaymentMethod
+        end,
+        PaymentMethods
+    ).
+
 get_invoice_by_external_id(ExternalID, #{woody_context := WoodyContext} = Context) ->
     PartyID = capi_handler_utils:get_party_id(Context),
     InvoiceKey = {'CreateInvoice', PartyID, ExternalID},
@@ -465,32 +495,3 @@ maybe_result({ok, Value}) ->
     Value;
 maybe_result(_) ->
     undefined.
-
-prepare_token_provider_data(Invoice, #{woody_context := WoodyContext} = Context) ->
-    #payproc_Invoice{invoice = #domain_Invoice{shop_id = ShopID}} = Invoice,
-    Shop = maybe_result(capi_handler_call:get_shop_by_id(ShopID, Context)),
-    #domain_Shop{details = #domain_ShopDetails{name = ShopName}} = Shop,
-    #domain_Shop{contract_id = ContractID} = Shop,
-    Contract = maybe_result(capi_handler_call:get_contract_by_id(ContractID, Context)),
-    #domain_Contract{payment_institution = PiRef} = Contract,
-    Pi = maybe_result(capi_domain:get({payment_institution, PiRef}, WoodyContext)),
-    #domain_PaymentInstitutionObject{data = #domain_PaymentInstitution{realm = Realm}} = Pi,
-    RealmMode = genlib:to_binary(Realm),
-    PartyID = capi_handler_utils:get_party_id(Context),
-    MerchantID = capi_handler_utils:wrap_merchant_id(RealmMode, PartyID, ShopID),
-    #{
-        <<"merchantID">> => MerchantID,
-        <<"merchantName">> => ShopName,
-        <<"realm">> => RealmMode
-    }.
-
-mixin_token_provider_data(PaymentMethods, TokenProviderData) ->
-    lists:map(
-        fun
-            (#{<<"method">> := <<"BankCard">>} = PaymentMethod) ->
-                PaymentMethod#{<<"tokenProviderData">> => TokenProviderData};
-            (PaymentMethod) ->
-                PaymentMethod
-        end,
-        PaymentMethods
-    ).

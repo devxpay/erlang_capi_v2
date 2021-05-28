@@ -28,7 +28,7 @@
 -export([unwrap_payment_session/1]).
 -export([wrap_payment_session/2]).
 -export([unwrap_merchant_id/1]).
--export([wrap_merchant_id/3]).
+-export([wrap_merchant_id/2]).
 
 -export([create_dsl/3]).
 
@@ -220,19 +220,18 @@ wrap_payment_session(ClientInfo, PaymentSession) ->
         <<"paymentSession">> => PaymentSession
     }).
 
--spec unwrap_merchant_id(binary()) -> {binary(), binary(), binary()}.
+-spec unwrap_merchant_id(binary()) -> {binary(), binary()}.
 unwrap_merchant_id(Encoded) ->
     case binary:split(Encoded, <<$:>>, [global]) of
-        [RealmMode, PartyHashBin, ShopID] ->
-            {RealmMode, PartyHashBin, ShopID};
+        [RealmMode, ShopID] ->
+            {RealmMode, ShopID};
         _ ->
             erlang:throw(invalid_merchant_id)
     end.
 
--spec wrap_merchant_id(binary(), binary(), binary()) -> binary().
-wrap_merchant_id(RealmMode, PartyID, ShopID) ->
-    PartyHashBin = erlang:integer_to_binary(erlang:phash2(PartyID), 16),
-    <<RealmMode/binary, $:, PartyHashBin/binary, $:, ShopID/binary>>.
+-spec wrap_merchant_id(binary(), binary()) -> binary().
+wrap_merchant_id(RealmMode, ShopID) ->
+    <<RealmMode/binary, $:, $:, ShopID/binary>>.
 
 -spec create_dsl(atom(), map(), map()) -> map().
 create_dsl(QueryType, QueryBody, QueryParams) ->
