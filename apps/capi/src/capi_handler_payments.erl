@@ -590,22 +590,20 @@ decode_payer_token(CustomerOrRecurrentPayer) ->
 
 unwrap_payment_tool(InvoiceID, #{payment_tool := PaymentTool} = TokenData) ->
     ValidUntil = maps:get(valid_until, TokenData, undefined),
-    TokenInvoiceID =
-        case capi_utils:deadline_is_reached(ValidUntil) of
-            true ->
-                logger:warning("Payment tool token expired: ~p", [capi_utils:deadline_to_binary(ValidUntil)]),
-                erlang:throw(invalid_token);
-            _ ->
-                maps:get(invoice_id, TokenData, undefined)
-        end,
-    case {TokenInvoiceID, InvoiceID} of
-        {undefined, _} ->
-            {PaymentTool, capi_handler_decoder_party:decode_payment_tool(PaymentTool)};
-        {InvoiceID, InvoiceID} ->
-            {PaymentTool, capi_handler_decoder_party:decode_payment_tool(PaymentTool)};
-        Other ->
-            logger:warning("Payment tool token bad invoice: ~p", [Other]),
-            erlang:throw(invalid_token)
+    case capi_utils:deadline_is_reached(ValidUntil) of
+        true ->
+            logger:warning("Payment tool token expired: ~p", [capi_utils:deadline_to_binary(ValidUntil)]),
+            erlang:throw(invalid_token);
+        _ ->
+            case maps:get(restriction, TokenData, undefined) of
+                undefined ->
+                    {PaymentTool, capi_handler_decoder_party:decode_payment_tool(PaymentTool)};
+                {invoice_id, InvoiceID} ->
+                    {PaymentTool, capi_handler_decoder_party:decode_payment_tool(PaymentTool)};
+                Other ->
+                    logger:warning("Payment tool token bad invoice: ~p", [Other]),
+                    erlang:throw(invalid_token)
+            end
     end.
 
 encode_invoice_payment_params(ID, ExternalID, PaymentParams, PaymentToolThrift) ->

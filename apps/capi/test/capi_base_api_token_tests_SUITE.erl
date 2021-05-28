@@ -2214,7 +2214,7 @@ check_support_decrypt_v2_test(_Config) ->
         "V2lTSmRnbzB0MCJ9..j3zEyCqyfQjpEtQM.JAc3kqJm6zbn0fMZGlK_t14Yt4PvgOuoVL2DtkEgIXIqrxxWFbykKBGxQvwYisJYIUJJwt"
         "YbwvuGEODcK2uTC2quPD2Ejew66DLJF2xcAwE.MNVimzi8r-5uTATNalgoBQ"
     >>,
-    {ok, {PaymentTool, ValidUntil}} = capi_crypto:decrypt_payment_tool_token(PaymentToolToken),
+    {ok, #{payment_tool := PaymentTool, valid_until := ValidUntil}} = capi_crypto:decode_token(PaymentToolToken),
     ?assertEqual(
         {mobile_commerce, #domain_MobileCommerce{
             phone = #domain_MobilePhone{

@@ -380,7 +380,8 @@ get_resource_hierarchy() ->
 % Which claims are gonna make it to InvoiceAccessTokens
 get_extra_properties() ->
     [
-        <<"ip_replacement_allowed">>
+        <<"ip_replacement_allowed">>,
+        <<"invoice_link">>
     ].
 
 -spec get_consumer(claims()) -> consumer().
