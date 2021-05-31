@@ -50,12 +50,11 @@ decrypt_token(EncryptedPaymentToolToken) ->
     ThriftType = {struct, struct, {dmsl_payment_tool_token_thrift, 'PaymentToolToken'}},
     case lechiffre:decode(ThriftType, EncryptedPaymentToolToken) of
         {ok, PaymentToolToken} ->
-            {ok,
-                #{
-                    payment_tool => decode_payment_tool_token_payload(PaymentToolToken#ptt_PaymentToolToken.payload),
-                    valid_until => decode_deadline(PaymentToolToken#ptt_PaymentToolToken.valid_until),
-                    invoice_link => decode_invoice_link(PaymentToolToken#ptt_PaymentToolToken.restriction)
-                }};
+            {ok, #{
+                payment_tool => decode_payment_tool_token_payload(PaymentToolToken#ptt_PaymentToolToken.payload),
+                valid_until => decode_deadline(PaymentToolToken#ptt_PaymentToolToken.valid_until),
+                invoice_link => decode_invoice_link(PaymentToolToken#ptt_PaymentToolToken.restriction)
+            }};
         {error, _} = Error ->
             Error
     end.
