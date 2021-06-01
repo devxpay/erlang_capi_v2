@@ -27,7 +27,6 @@
 
 -export([unwrap_payment_session/1]).
 -export([wrap_payment_session/2]).
--export([make_merchant_id/2]).
 
 -export([create_dsl/3]).
 
@@ -218,10 +217,6 @@ wrap_payment_session(ClientInfo, PaymentSession) ->
         <<"clientInfo">> => ClientInfo,
         <<"paymentSession">> => PaymentSession
     }).
-
--spec make_merchant_id(binary(), binary()) -> binary().
-make_merchant_id(PartyID, ShopID) ->
-    <<PartyID/binary, $:, ShopID/binary>>.
 
 -spec create_dsl(atom(), map(), map()) -> map().
 create_dsl(QueryType, QueryBody, QueryParams) ->

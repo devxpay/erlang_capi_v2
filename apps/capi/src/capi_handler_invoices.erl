@@ -462,12 +462,18 @@ decode_token_provider_data(Invoice, #{woody_context := WoodyContext} = Context) 
     #domain_Contract{payment_institution = PiRef} = Contract,
     Pi = maybe_result(capi_domain:get({payment_institution, PiRef}, WoodyContext)),
     #domain_PaymentInstitutionObject{data = #domain_PaymentInstitution{realm = Realm}} = Pi,
+    RealmMode = genlib:to_binary(Realm),
     #{
-        <<"merchantID">> => capi_handler_utils:make_merchant_id(PartyID, ShopID),
+        <<"merchantID">> => make_merchant_id(RealmMode, PartyID, ShopID),
         <<"merchantName">> => ShopName,
         <<"orderID">> => InvoiceID,
-        <<"realm">> => genlib:to_binary(Realm)
+        <<"realm">> => RealmMode
     }.
+
+-spec make_merchant_id(binary(), binary(), binary()) -> binary().
+make_merchant_id(RealmMode, PartyID, ShopID) ->
+    Bin16 = erlang:integer_to_binary(erlang:phash2(PartyID), 16),
+    <<RealmMode/binary, $:, Bin16/binary, $:, ShopID/binary>>.
 
 mixin_token_provider_data(PaymentMethods, TokenProviderData) ->
     lists:map(
