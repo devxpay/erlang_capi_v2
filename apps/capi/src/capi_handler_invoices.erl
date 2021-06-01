@@ -478,7 +478,7 @@ make_merchant_id(RealmMode, PartyID, ShopID) ->
 mixin_token_provider_data(PaymentMethods, TokenProviderData) ->
     lists:map(
         fun
-            (#{<<"method">> := <<"BankCard">>} = PaymentMethod) ->
+            (#{<<"tokenProviders">> := _Providers} = PaymentMethod) ->
                 PaymentMethod#{<<"tokenProviderData">> => TokenProviderData};
             (PaymentMethod) ->
                 PaymentMethod
