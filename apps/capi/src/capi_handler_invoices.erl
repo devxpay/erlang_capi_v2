@@ -455,12 +455,12 @@ decode_token_provider_data(Invoice, #{woody_context := WoodyContext} = Context) 
     #domain_Invoice{id = InvoiceID} = Invoice,
     #domain_Invoice{owner_id = PartyID} = Invoice,
     #domain_Invoice{shop_id = ShopID} = Invoice,
-    Shop = maybe_result(capi_handler_call:get_shop_by_id(ShopID, Context)),
+    {ok, Shop} = capi_handler_call:get_shop_by_id(ShopID, Context),
     #domain_Shop{details = #domain_ShopDetails{name = ShopName}} = Shop,
     #domain_Shop{contract_id = ContractID} = Shop,
-    Contract = maybe_result(capi_handler_call:get_contract_by_id(ContractID, Context)),
+    {ok, Contract} = capi_handler_call:get_contract_by_id(ContractID, Context),
     #domain_Contract{payment_institution = PiRef} = Contract,
-    Pi = maybe_result(capi_domain:get({payment_institution, PiRef}, WoodyContext)),
+    {ok, Pi} = capi_domain:get({payment_institution, PiRef}, WoodyContext),
     #domain_PaymentInstitutionObject{data = #domain_PaymentInstitution{realm = Realm}} = Pi,
     RealmMode = genlib:to_binary(Realm),
     #{
@@ -489,11 +489,11 @@ mixin_token_provider_data(PaymentMethods, TokenProviderData) ->
 get_realm_by_invoice(Invoice, #{woody_context := WoodyContext} = Context) ->
     #domain_Invoice{owner_id = PartyID} = Invoice,
     #domain_Invoice{shop_id = ShopID} = Invoice,
-    Shop = maybe_result(capi_handler_call:get_shop_by_id(PartyID, ShopID, Context)),
+    {ok, Shop} = capi_handler_call:get_shop_by_id(PartyID, ShopID, Context),
     #domain_Shop{contract_id = ContractID} = Shop,
-    Contract = maybe_result(capi_handler_call:get_contract_by_id(ContractID, Context)),
+    {ok, Contract} = capi_handler_call:get_contract_by_id(ContractID, Context),
     #domain_Contract{payment_institution = PiRef} = Contract,
-    Pi = maybe_result(capi_domain:get({payment_institution, PiRef}, WoodyContext)),
+    {ok, Pi} = capi_domain:get({payment_institution, PiRef}, WoodyContext),
     #domain_PaymentInstitutionObject{data = #domain_PaymentInstitution{realm = Realm}} = Pi,
     Realm.
 
