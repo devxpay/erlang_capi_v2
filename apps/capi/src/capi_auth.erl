@@ -381,7 +381,7 @@ get_resource_hierarchy() ->
 get_extra_properties() ->
     [
         <<"ip_replacement_allowed">>,
-        <<"invoice_link">>,
+        <<"invoice_id">>,
         <<"realm">>
     ].
 

@@ -86,8 +86,8 @@ prepare('CreateInvoiceAccessToken' = OperationID, Req, Context) ->
             PartyID,
             {invoice, InvoiceID},
             ExtraProperties#{
-                % invoice_link использется для привязки токена в createPaymentResource
-                <<"invoice_link">> => InvoiceID,
+                % invoice_id использется для привязки токена в createPaymentResource
+                <<"invoice_id">> => InvoiceID,
                 % realm_mode использется для распаковки и валидации токена  в PaymentToolProvider:Unwrap
                 <<"realm">> => genlib:to_binary(get_realm_by_invoice(Invoice, Context))
             }
