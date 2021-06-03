@@ -81,17 +81,14 @@ prepare('CreateInvoiceAccessToken' = OperationID, Req, Context) ->
         capi_handler:respond_if_undefined(ResultInvoice, general_error(404, <<"Invoice not found">>)),
         #'payproc_Invoice'{invoice = Invoice} = ResultInvoice,
         #'domain_Invoice'{owner_id = PartyID} = Invoice,
-        ExtraProperties = capi_handler_utils:get_extra_properties(Context),
-        Response = capi_handler_utils:issue_access_token(
-            PartyID,
-            {invoice, InvoiceID},
-            ExtraProperties#{
-                % invoice_id использется для привязки токена в createPaymentResource
-                <<"invoice_id">> => InvoiceID,
-                % realm_mode использется для распаковки и валидации токена  в PaymentToolProvider:Unwrap
-                <<"realm">> => genlib:to_binary(get_realm_by_invoice(Invoice, Context))
-            }
-        ),
+        {ok, Realm} = get_realm_by_invoice(Invoice, Context),
+        ExtraProperties = maps:merge(capi_handler_utils:get_extra_properties(Context), #{
+            % token_link содержит тип и индентифкатор сущности используемый для привязки в createPaymentResource
+            <<"token_link">> => [{invoice_id, InvoiceID}],
+            % realm использется для распаковки и валидации токена в PaymentToolProvider:Unwrap
+            <<"realm">> => Realm
+        }),
+        Response = capi_handler_utils:issue_access_token(PartyID, {invoice, InvoiceID}, ExtraProperties),
         {ok, {201, #{}, Response}}
     end,
     {ok, #{authorize => Authorize, process => Process}};
@@ -267,8 +264,8 @@ prepare('GetInvoicePaymentMethods' = OperationID, Req, Context) ->
             {ok, PaymentMethods0} when is_list(PaymentMethods0) ->
                 PaymentMethods1 = capi_utils:deduplicate_payment_methods(PaymentMethods0),
                 #'payproc_Invoice'{invoice = Invoice} = ResultInvoice,
-                TokenProviderData = decode_token_provider_data(Invoice, Context),
-                PaymentMethods = mixin_token_provider_data(PaymentMethods1, TokenProviderData),
+                TokenProviderData = construct_token_provider_data(Invoice, Context),
+                PaymentMethods = decode_token_provider_data(PaymentMethods1, TokenProviderData),
                 {ok, {200, #{}, PaymentMethods}};
             {exception, Exception} ->
                 case Exception of
@@ -451,17 +448,23 @@ decode_refund_for_event(#domain_InvoicePaymentRefund{cash = undefined} = Refund,
         capi_handler_call:get_payment_by_id(InvoiceID, PaymentID, Context),
     capi_handler_decoder_invoicing:decode_refund(Refund#domain_InvoicePaymentRefund{cash = Cash}, Context).
 
-decode_token_provider_data(Invoice, #{woody_context := WoodyContext} = Context) ->
-    #domain_Invoice{id = InvoiceID} = Invoice,
-    #domain_Invoice{owner_id = PartyID} = Invoice,
-    #domain_Invoice{shop_id = ShopID} = Invoice,
-    {ok, Shop} = capi_handler_call:get_shop_by_id(ShopID, Context),
-    #domain_Shop{details = #domain_ShopDetails{name = ShopName}} = Shop,
-    #domain_Shop{contract_id = ContractID} = Shop,
-    {ok, Contract} = capi_handler_call:get_contract_by_id(ContractID, Context),
-    #domain_Contract{payment_institution = PiRef} = Contract,
-    {ok, Pi} = capi_domain:get({payment_institution, PiRef}, WoodyContext),
-    #domain_PaymentInstitutionObject{data = #domain_PaymentInstitution{realm = Realm}} = Pi,
+decode_token_provider_data(PaymentMethods, TokenProviderData) ->
+    lists:map(
+        fun
+            (#{<<"tokenProviders">> := _Providers} = PaymentMethod) ->
+                PaymentMethod#{<<"tokenProviderData">> => TokenProviderData};
+            (PaymentMethod) ->
+                PaymentMethod
+        end,
+        PaymentMethods
+    ).
+
+construct_token_provider_data(Invoice, Context) ->
+    #domain_Invoice{id = InvoiceID, owner_id = PartyID} = Invoice,
+    {ok, Shop} = get_shop_by_invoice(Invoice, Context),
+    #domain_Shop{id = ShopID, details = #domain_ShopDetails{name = ShopName}} = Shop,
+    {ok, Pi} = get_payment_institution_by_shop(Shop, Context),
+    #domain_PaymentInstitution{realm = Realm} = Pi,
     RealmMode = genlib:to_binary(Realm),
     #{
         <<"merchantID">> => make_merchant_id(RealmMode, PartyID, ShopID),
@@ -475,27 +478,23 @@ make_merchant_id(RealmMode, PartyID, ShopID) ->
     Bin16 = erlang:integer_to_binary(erlang:phash2(PartyID), 16),
     <<RealmMode/binary, $:, Bin16/binary, $:, ShopID/binary>>.
 
-mixin_token_provider_data(PaymentMethods, TokenProviderData) ->
-    lists:map(
-        fun
-            (#{<<"tokenProviders">> := _Providers} = PaymentMethod) ->
-                PaymentMethod#{<<"tokenProviderData">> => TokenProviderData};
-            (PaymentMethod) ->
-                PaymentMethod
-        end,
-        PaymentMethods
-    ).
+get_realm_by_invoice(Invoice, Context) ->
+    {ok, Shop} = get_shop_by_invoice(Invoice, Context),
+    {ok, Pi} = get_payment_institution_by_shop(Shop, Context),
+    #domain_PaymentInstitution{realm = Realm} = Pi,
+    {ok, Realm}.
 
-get_realm_by_invoice(Invoice, #{woody_context := WoodyContext} = Context) ->
-    #domain_Invoice{owner_id = PartyID} = Invoice,
-    #domain_Invoice{shop_id = ShopID} = Invoice,
-    {ok, Shop} = capi_handler_call:get_shop_by_id(PartyID, ShopID, Context),
+get_payment_institution_by_shop(Shop, Context) ->
     #domain_Shop{contract_id = ContractID} = Shop,
     {ok, Contract} = capi_handler_call:get_contract_by_id(ContractID, Context),
     #domain_Contract{payment_institution = PiRef} = Contract,
-    {ok, Pi} = capi_domain:get({payment_institution, PiRef}, WoodyContext),
-    #domain_PaymentInstitutionObject{data = #domain_PaymentInstitution{realm = Realm}} = Pi,
-    Realm.
+    {ok, PiObject} = capi_domain:get({payment_institution, PiRef}),
+    #domain_PaymentInstitutionObject{data = Pi} = PiObject,
+    {ok, Pi}.
+
+get_shop_by_invoice(Invoice, Context) ->
+    #domain_Invoice{owner_id = PartyID, shop_id = ShopID} = Invoice,
+    capi_handler_call:get_shop_by_id(PartyID, ShopID, Context).
 
 get_invoice_by_external_id(ExternalID, #{woody_context := WoodyContext} = Context) ->
     PartyID = capi_handler_utils:get_party_id(Context),

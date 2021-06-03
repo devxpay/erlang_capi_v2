@@ -595,13 +595,13 @@ unwrap_payment_tool(InvoiceID, #{payment_tool := PaymentTool} = TokenData) ->
             logger:warning("Payment tool token expired: ~p", [capi_utils:deadline_to_binary(ValidUntil)]),
             erlang:throw(invalid_token);
         _ ->
-            case maps:get(invoice_id, TokenData, undefined) of
+            case maps:get(token_link, TokenData, undefined) of
                 undefined ->
                     {PaymentTool, capi_handler_decoder_party:decode_payment_tool(PaymentTool)};
-                InvoiceID ->
+                {invoice_id, InvoiceID} ->
                     {PaymentTool, capi_handler_decoder_party:decode_payment_tool(PaymentTool)};
                 Other ->
-                    logger:warning("Payment tool token bad invoice: ~p", [Other]),
+                    logger:warning("Payment tool token bad link: ~p", [Other]),
                     erlang:throw(invalid_token)
             end
     end.

@@ -13,13 +13,13 @@
     Req :: capi_handler:request_data(),
     Context :: capi_handler:processing_context()
 ) -> {ok, capi_handler:request_state()} | {error, noimpl}.
-prepare(OperationID = 'GetCategories', Req, Context = #{woody_context := WoodyContext}) ->
+prepare(OperationID = 'GetCategories', Req, Context) ->
     Authorize = fun() ->
         Prototypes = [{operation, #{id => OperationID}}],
         {ok, capi_auth:authorize_operation(OperationID, Prototypes, Context, Req)}
     end,
     Process = fun() ->
-        Categories = capi_utils:unwrap(capi_domain:get_categories(WoodyContext)),
+        Categories = capi_utils:unwrap(capi_domain:get_categories()),
         {ok, {200, #{}, [decode_category(C) || C <- Categories]}}
     end,
     {ok, #{authorize => Authorize, process => Process}};
@@ -42,9 +42,9 @@ prepare(_OperationID, _Req, _Context) ->
 
 %%
 
-get_category_by_id(CategoryID, #{woody_context := WoodyContext}) ->
+get_category_by_id(CategoryID, _Context) ->
     CategoryRef = {category, #domain_CategoryRef{id = CategoryID}},
-    capi_domain:get(CategoryRef, WoodyContext).
+    capi_domain:get(CategoryRef).
 
 decode_category(#domain_CategoryObject{ref = Ref, data = Data}) ->
     genlib_map:compact(#{
