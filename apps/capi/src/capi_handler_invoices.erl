@@ -84,7 +84,7 @@ prepare('CreateInvoiceAccessToken' = OperationID, Req, Context) ->
         {ok, Realm} = get_realm_by_invoice(Invoice, Context),
         ExtraProperties = maps:merge(capi_handler_utils:get_extra_properties(Context), #{
             % token_link содержит тип и индентифкатор сущности используемый для привязки в createPaymentResource
-            <<"token_link">> => [{invoice_id, InvoiceID}],
+            <<"token_link">> => #{<<"invoice_id">> => InvoiceID},
             % realm использется для распаковки и валидации токена в PaymentToolProvider:Unwrap
             <<"realm">> => Realm
         }),

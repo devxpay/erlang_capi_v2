@@ -6,16 +6,17 @@
 -type token_data() :: #{
     payment_tool := payment_tool(),
     valid_until := deadline(),
-    token_link => payment_tool_token_link() | undefined
+    token_link => token_link()
 }.
+-type token_link() :: dmsl_payment_tool_token_thrift:'PaymentToolTokenLink'() | undefined.
 -type payment_tool() :: dmsl_domain_thrift:'PaymentTool'().
 -type payment_tool_token() :: dmsl_payment_tool_token_thrift:'PaymentToolToken'().
 -type payment_tool_token_payload() :: dmsl_payment_tool_token_thrift:'PaymentToolTokenPayload'().
--type payment_tool_token_link() :: dmsl_payment_tool_token_thrift:'PaymentToolTokenLink'().
 -type deadline() :: capi_utils:deadline().
 
 -export_type([token/0]).
 -export_type([token_data/0]).
+-export_type([token_link/0]).
 
 -export([encode_token/1]).
 -export([decode_token/1]).
